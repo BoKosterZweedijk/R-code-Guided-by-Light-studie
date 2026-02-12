@@ -2,7 +2,7 @@ packages <- c("dplyr", "tableone", "ggplot2", "tidyr", "readr", "tibble",
               
               "stringr", "lubridate", "caret", "tidyverse",
               
-              "shiny", "rmarkdown", "knitr", "magrittr",
+              "shiny", "rmarkdown", "knitr", "magrittr", "binom",
               
               "data.table", "Rcpp", "devtools", "R6",
               
@@ -1187,4 +1187,105 @@ p_H1 <- 0.40
 power_H1 <- 1 - pbinom(threshold - 1, size = n, prob = p_H1)
 
 cat("Power bij p = 0.40:", round(power_H1, 4), "\n")
+
+
+#------------------- Diagnostic performance -----------------
+
+------------# Inadequate margin detection: Binomial Clopper-Pearson method-----
+
+TP <- a; FP <- b; FN <- c; TN <- d
+
+
+calc_diag_metrics <- function(TP, FP, FN, TN, conf.level = 0.95) {
+
+  # Sensitiviteit
+  
+  sens <- TP / (TP + FN)
+  
+  sens_ci <- binom.test(x = TP, n = TP + FN, conf.level = conf.level)$conf.int
+  
+  # Specificiteit
+  
+  spec <- TN / (TN + FP)
+  
+  spec_ci <- binom.test(x = TN, n = TN + FP, conf.level = conf.level)$conf.int
+  
+  # Positieve voorspellende waarde (PPV)
+  
+  ppv <- TP / (TP + FP)
+  
+  ppv_ci <- binom.test(x = TP, n = TP + FP, conf.level = conf.level)$conf.int
+  
+  # Negatieve voorspellende waarde (NPV)
+  
+  npv <- TN / (TN + FN)
+  
+  npv_ci <- binom.test(x = TN, n = TN + FN, conf.level = conf.level)$conf.int
+  
+  # Accuracy
+  
+  accuracy <- (TP + TN) / (TP + FP + FN + TN)
+  
+  accuracy_ci <- binom.test(x = TP + TN, n = TP + FP + FN + TN, conf.level = conf.level)$conf.int
+  
+  # Resultaten als dataframe
+  
+  results <- data.frame(
+    
+    Metric = c("Sensitivity", "Specificity", "PPV", "NPV", "Accuracy"),
+    
+    Estimate = c(sens, spec, ppv, npv, accuracy),
+    
+    Lower_CI = c(sens_ci[1], spec_ci[1], ppv_ci[1], npv_ci[1], accuracy_ci[1]),
+    
+    Upper_CI = c(sens_ci[2], spec_ci[2], ppv_ci[2], npv_ci[2], accuracy_ci[2])
+    
+  )
+  
+  return(results)
+  
+}
+
+------------# Tumor detection: ANOVA-type Wilson score---------------
+
+library(binom)
+
+TP <- a; FP <- b; FN <- c; TN <- d
+
+# Sensitiviteit
+
+sens <- binom.confint(x = TP, n = TP + FN, conf.level = 0.95, methods = "wilson")
+
+sens
+
+
+# Specificiteit
+
+spec <- binom.confint(x = TN, n = TN + FP, conf.level = 0.95, methods = "wilson")
+
+spec
+
+
+# Positieve voorspellende waarde (PPV)
+
+ppv <- binom.confint(x = TP, n = TP + FP, conf.level = 0.95, methods = "wilson")
+
+ppv
+
+
+# Negatieve voorspellende waarde (NPV)
+
+npv <- binom.confint(x = TN, n = TN + FN, conf.level = 0.95, methods = "wilson")
+
+npv
+
+
+# Accuracy
+
+accuracy <- binom.confint(x = TP + TN, n = TP + FP + FN + TN, conf.level = 0.95, methods = "wilson")
+
+accuracy
+
+
+
 
